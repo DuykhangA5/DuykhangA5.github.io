@@ -1,0 +1,232 @@
+#black-screen{
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, #0b1220, #121c2f);
+    z-index: 9999;
+    animation: slideOut 0.9s cubic-bezier(.77,0,.18,1) forwards;
+    animation-delay: 0.3s; /* đứng yên 1s rồi mới kéo */
+    
+}
+
+@keyframes slideOut{
+    from { 
+        transform: translateX(0); 
+    }
+    to { 
+        transform: translateX(-100%); 
+    }
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    -webkit-user-select: none; /* Chrome, Edge, Android */
+    -ms-user-select: none;     /* IE/Edge cũ */
+    user-select: none;         /* Chuẩn */
+}
+
+body {
+    background-color: whitesmoke;
+}
+
+.slide {
+    height: 100%;
+    top: 0;
+    left: 0;
+    width: 180px;
+    position: fixed;
+    background: linear-gradient(180deg, #0b1220, #121c2f);
+    transition: 0.5s ease;
+    transform: translateX(-180px) scale(0.95);
+    
+}
+
+h1 {
+    color: #38bdf8;
+    font-weight: 800;
+    text-align: right;
+    padding: 10px 0;
+    padding-right: 30px;
+    pointer-events: none;
+}
+
+ul li{
+    list-style: none;
+}
+
+ul li a{
+    color: #7dd3fc;
+    font-weight: 500;
+    padding: 5px 0;
+    display: block;
+    text-transform: capitalize;
+    text-decoration: none;
+    transition: 0.2s ease-out;
+    padding: 8px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px; /* khoảng cách icon và chữ */
+    position: relative;
+    overflow: visible;
+    z-index: 1;
+}
+
+ul li a{
+    color: #7dd3fc;
+    font-weight: 500;
+    text-transform: capitalize;
+    text-decoration: none;
+    padding: 10px 20px;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+
+    transition: color .2s ease, transform .2s ease;
+}
+
+/* BOX CHÍNH */
+ul li a::before{
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 0;
+
+    width: calc(100% + 10px);
+    height: 100%;
+
+    background: linear-gradient(135deg, #1fb6ff, #0284c7);
+
+    opacity: 0;
+    transition: 0.2s ease;
+
+    z-index: -1;
+}
+
+/* MẢNH NHÔ XÉO */
+ul li a::after{
+    content: "";
+    position: absolute;
+    right: -22px;
+    top: 0;
+
+    width: 22px;
+    height: 100%;
+
+    background: linear-gradient(135deg, #0284c7, #1fb6ff);
+
+    transform: skewX(-25deg);
+    transform-origin: left top;
+
+    opacity: 0;
+    transition: 0.2s ease;
+
+    z-index: -1;
+}
+
+/* HOVER */
+ul li a:hover{
+    color: white;
+    transform: translateX(3px);
+}
+
+ul li a:hover::before{
+    opacity: 1;
+    transform: scaleX(1);
+    box-shadow:
+        0 6px 14px rgba(0,0,0,0.4),
+        0 0 10px rgba(56,189,248,0.4);
+}
+
+ul li a:hover::after{
+    opacity: 1;
+    transform: translateX(0) skewX(-25deg);
+    box-shadow:
+        6px 0 14px rgba(0,0,0,0.4),
+        0 0 10px rgba(56,189,248,0.35);
+}
+
+ul li a i{
+    width:40px;
+    text-align: center;
+}
+
+input{
+    display: none;
+    visibility: hidden;
+    -webkit-appearance: none;
+}
+
+.toggle{
+    position: absolute;
+    height: 30px;
+    width: 30px;
+    top: 15px;
+    left: 15px;
+    z-index: 1;
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: #fff;
+
+    box-shadow:
+        0 4px 12px rgba(0,0,0,0.5),
+        0 0 8px rgba(56,189,248,0.6);
+}
+
+.toggle .common{
+    position: absolute;
+    height: 2px;
+    width: 20px;
+    background-color: #38bdf8;
+    border-radius: 50px;
+    transition: 0.3s ease;
+}
+
+.toggle .top-line{
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.toggle .middle-line{
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.toggle .bottom-line{
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+input:checked ~  .toggle .top-line{
+    top: 14px;
+    left: 2px;
+    width: 25px;
+    transform: rotate(45deg);
+}
+
+input:checked ~  .toggle .bottom-line{
+    top: 14px;
+    left: 2px;
+    width: 25px;
+    transform: rotate(-45deg);
+}
+
+input:checked ~  .toggle .middle-line{
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+input:checked ~ .slide{
+    transform: translateX(0px);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
