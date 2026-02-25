@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Banner Gacha Hiện Tại</title>
+<style>
+  body{background:#0f172a;color:#fff;font-family:Arial,Helvetica,sans-serif;text-align:center;padding:20px;}
+  h1{font-size:34px;margin:10px 0;}
+  .card{background:#142032;padding:12px;margin:10px auto;border-radius:10px;max-width:720px;}
+  .error{background:#4b2b2b;color:#ffd7d7;}
+</style>
+</head>
+<body>
+  <h1>🎮 Banner Gacha Hiện Tại</h1>
+  <div id="box"><div class="card">Đang tải...</div></div>
+
+<script>
+(async ()=>{
+  const box = document.getElementById('box');
+  box.innerHTML = '';
+
+  const feeds = [
+    {name: "Genshin Impact", url: "https://genshin.hoyoverse.com/en/news/rss"},
+    {name: "Honkai Star Rail", url: "https://hsr.hoyoverse.com/en-us/news/rss"}
+  ];
+
+  // proxies to try in order (rss2json returns JSON; allorigins returns raw text)
+  const proxies = [
+    {type:'json', prefix: "https://api.rss2json.com/v1/api.json?rss_url="},
+    {type:'raw',  prefix: "https://api.allorigins.win/raw?url="}
+  ];
+
+  // helper: fetch with timeout
+  async function fetchWithTimeout(url, timeout = 12000) {
+    const controller = new AbortController();
+    const id = setTimeout(()=>controller.abort(), timeout);
+    try{
+      const resp = await fetch(url, {signal: controller.signal});
+      clearTimeout(id);
+      return resp;
+    }catch(e){
+      clearTimeout(id);
+      throw e;
+    }
+  }
+
+  // parse RSS/XML text and return array of titles (if any)
+  function parseRssTitlesFromXml(text){
+    try{
+      const doc = new DOMParser().parseFromString(text, "text/xml");
+      const items = Array.from(doc.querySelectorAll("item"));
+      if(items.length === 0) return null;
+      return items.map(it => {
+        const t = it.querySelector("title");
+        return t ? t.textContent.trim() : '';
+      }).filter(Boolean);
+    }catch(e){
+      return null;
+    }
+  }
+
+  // parse HTML page (fallback) and try to find useful text
+  function parseTitlesFromHtml(text){
+    try{
+      const doc = new DOMParser().parseFromString(text, "text/html");
+      // heuristic: collect anchor texts and headings
+      const nodes = Array.from(doc.querySelectorAll('a,h2,h3'));
+      const texts = nodes.map(n => n.textContent.trim()).filter(Boolean);
+      return texts.length ? texts : null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  // Try to get titles for one feed by trying proxies in order
+  async function fetchFeedTitles(rssUrl){
+    for(const p of proxies){
+      const full = p.prefix + encodeURIComponent(rssUrl);
+      try{
+        const resp = await fetchWithTimeout(full, 10000);
+        if(!resp.ok) {
+          // try next proxy
+          console.warn('proxy returned non-ok', full, resp.status);
+          continue;
+        }
+
+        const ct = (resp.headers.get('content-type')||'').toLowerCase();
+
+        // if proxy returns JSON (rss2json)
+        if(p.type === 'json' || ct.includes('application/json')){
+          let j;
+          try{ j = await resp.json(); } catch(e){ 
+            console.warn('invalid json from', full, e);
+            // fallback to text below
+          }
+          if(j && j.items && j.items.length){
+            return j.items.map(it => it.title || it.title_no_format || '').filter(Boolean);
+          }
+          // maybe proxy returned an HTML error page disguised as 200 -> fallthrough
+          const txt = await resp.text();
+          const xmlTitles = parseRssTitlesFromXml(txt);
+          if(xmlTitles) return xmlTitles;
+          continue;
+        }
+
+        // otherwise treat as raw text (allorigins)
+        const text = await resp.text();
+        // try parse as XML rss
+        const xmlTitles = parseRssTitlesFromXml(text);
+        if(xmlTitles) return xmlTitles;
+        // try parse html heuristics
+        const htmlTitles = parseTitlesFromHtml(text);
+        if(htmlTitles) return htmlTitles;
+
+        // nothing useful, try next proxy
+      }catch(e){
+        console.warn('fetch error for proxy', p.prefix, e);
+        // try next proxy
+        continue;
+      }
+    }
+    // all proxies failed
+    return null;
+  }
+
+  // keywords to identify banner-type entries
+  const KEYWORDS = ["wish","event","warp","banner","character","weapon"];
+
+  // main: for each feed, fetch & display result (with safe checks)
+  for(const f of feeds){
+    const container = document.createElement('div');
+    container.className = 'card';
+    container.innerHTML = `<strong>${f.name}</strong><div id="inner-${f.name.replace(/\s+/g,'_')}">Đang tải...</div>`;
+    box.appendChild(container);
+
+    try{
+      const titles = await fetchFeedTitles(f.url);
+      const inner = container.querySelector('div');
+
+      if(!titles || titles.length === 0){
+        inner.innerHTML = `<div class="error">❌ Không tải được ${f.name} (proxy/API trả về không hợp lệ)</div>`;
+        continue;
+      }
+
+      // filter by keywords (case-insensitive)
+      const filtered = titles.filter(t => {
+        const s = t.toLowerCase();
+        return KEYWORDS.some(k => s.includes(k));
+      });
+
+      // display results (if none match keywords, show top titles)
+      const show = filtered.length ? filtered.slice(0,5) : titles.slice(0,5);
+      inner.innerHTML = '';
+      show.forEach(t => {
+        const el = document.createElement('div');
+        el.style.padding = '6px 0';
+        el.textContent = '• ' + t;
+        inner.appendChild(el);
+      });
+    }catch(e){
+      container.querySelector('div').innerHTML = `<div class="error">❌ Lỗi khi tải ${f.name}</div>`;
+      console.error(e);
+    }
+  }
+
+  // helpful note
+  const note = document.createElement('div');
+  note.className = 'card';
+  note.style.marginTop = '18px';
+  note.innerHTML = '<small>Ghi chú: nếu vẫn lỗi, host file trên server (ví dụ: GitHub Pages hoặc chạy `python -m http.server`) để tránh hạn chế CORS khi mở file từ máy. Nếu bạn muốn, mình hướng dẫn cách host nhanh.</small>';
+  box.appendChild(note);
+
+})();  
+</script>
+</body>
+</html>
